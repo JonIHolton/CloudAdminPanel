@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package points;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+
+message PointsAccount {
+  string userid = 1;
+  string pointsid = 2;
+  string bank = 3;
+  int32 points = 4;
+  google.protobuf.Timestamp createdAt = 5;
+  google.protobuf.Timestamp updatedAt = 6;
+}
+
+
+// Request and Response Messages
+message GetRequest {
+  string id = 1; // Generic ID for user or email based on context
+}
+
+
+message PointsRequest {
+  string pointsid = 1; // For getting, updating, or deleting points account
+}
+
+message PointsResponse {
+  repeated PointsAccount pointsAccount = 1;
+}
+
+// Service Definition
+service PointsService {
+  rpc DeleteUser(GetRequest) returns (google.protobuf.Empty) {}
+  rpc GetUserPointsAccountsByUserId(GetRequest) returns (PointsResponse) {}
+  rpc GetUserPointsAccountDetails(PointsRequest) returns (PointsResponse) {}
+  rpc UpdateUserPoints(PointsAccount) returns (PointsResponse) {}
+  rpc DeletePointsAccount(PointsRequest) returns (google.protobuf.Empty) {}
+  rpc Ping(PingRequest) returns (PingResponse) {}
+
+  rpc GetPointsByPointsId(PointsRequest) returns (PointsResponse) {}
+  rpc UpdatePoints(PointsAccount) returns (PointsResponse) {}
+  rpc CreateNewPointsAccount(PointsAccount) returns (PointsResponse) {}
+  rpc GetAllBanks(google.protobuf.Empty) returns (BanksResponse) {}
+}
+
+
+
+message PingRequest {}
+message PingResponse {
+  string message = 1;
+}
+
+
+message BanksResponse {
+  repeated string banks = 1;
+}

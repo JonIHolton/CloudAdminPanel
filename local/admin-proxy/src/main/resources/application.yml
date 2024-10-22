@@ -1,0 +1,69 @@
+spring:
+  profiles: 
+    active: dev
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            clientId: 1044644836729-pvopjndhkcrg9m3mc5mm6vma0s52p3gt.apps.googleusercontent.com
+            clientSecret: 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
+            redirectUri: "https://api.itsag1t1.com/oauth2/callback/google"
+            scope:
+              - email
+              - profile
+    jwt:
+      issuer: "https://api.itsag1t1.com" 
+# keys
+rsa:
+  private-key:
+    classpath:certs/private.pem
+  public-key:
+    classpath:certs/public.pem
+    
+management:
+  endpoints:
+    enabled-by-default: false
+    health: enabled
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+      sensitive: false
+      
+token:
+  # domain: whereisthisused.com
+  expiresMinutes: 15
+
+
+oauth:
+  # After successfully authenticating with the OAuth2 Provider,
+  # we'll be generating an auth token for the user and sending the token to the
+  # redirectUri mentioned by the client in the /oauth2/authorize request.
+  # We're not using cookies because they won't work well in mobile clients.
+  authorizedRedirectUris:
+      - https://itsag1t1.com/auth/callback
+      - myandroidapp://oauth2/redirect
+      - myiosapp://oauth2/
+grpc:
+  userOrchestrator:
+    address: 127.0.0.1
+    port: 50053
+  transactionOrchestrator:
+    address: transaction-orchestrator-service
+    port: 50052
+
+
+
+spring.profiles.active: prod
+app:
+  defaultRedirectUrl: "/" 
+
+
+logging:
+  level:
+    root: INFO

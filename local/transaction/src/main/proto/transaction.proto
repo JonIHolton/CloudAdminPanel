@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package transactions;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto"; 
+import "google/protobuf/any.proto";
+
+message ResponseMetadata {
+  string request_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  bool success = 3;
+  string error_message = 4;
+}
+
+message ErrorResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message ServiceResponseWrapper {
+  ResponseMetadata metadata = 1;
+  oneof result {
+    google.protobuf.Any payload = 2;
+    ErrorResponse error = 3;
+  }
+}
+
+// TransactionService with comprehensive error handling and response structure
+service TransactionService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (ServiceResponseWrapper);
+  rpc GetTransaction(GetTransactionRequest) returns (ServiceResponseWrapper);
+  rpc UpdateTransactionStatus(UpdateTransactionStatusRequest) returns (ServiceResponseWrapper);
+  rpc ListTransactions(ListTransactionsRequest) returns (ServiceResponseWrapper);
+  rpc DeleteTransaction(DeleteTransactionRequest) returns (ServiceResponseWrapper);
+  rpc ApproveTransaction(ApproveTransactionRequest) returns (ServiceResponseWrapper);
+}
+
+// Request messages
+message CreateTransactionRequest {
+  string requestId = 1;
+  string userId = 2;
+  google.protobuf.Struct action = 4; 
+}
+
+message GetTransactionRequest {
+  string requestId = 1;
+  string transactionId = 2;
+}
+
+message UpdateTransactionStatusRequest {
+  string requestId = 1;
+  string transactionId = 2;
+  TransactionStatus status = 3; 
+}
+
+message ListTransactionsRequest {
+  string requestId = 1;
+  string userId = 2;
+  int32 page_number = 3;
+  int32 page_size = 4;
+}
+
+message DeleteTransactionRequest {
+  string requestId = 1;
+  string transactionId = 2;
+}
+
+message ApproveTransactionRequest {
+  string requestId = 1;
+  string transactionId = 2;
+  string approverId = 3; 
+}
+
+// Response messages
+message TransactionResponse {
+  string transactionId = 1;
+  string userId = 2;
+  google.protobuf.Timestamp date_time = 3;
+  double amount = 4;
+  TransactionStatus status = 5;
+  google.protobuf.Timestamp status_update_time = 6;
+  google.protobuf.Struct action = 7; 
+  string approverId = 8; // Nullable, ID of the approver if applicable
+}
+
+message ListTransactionsResponse {
+  repeated TransactionResponse transactions = 1;
+  int32 total_pages = 2;
+  int32 current_page = 3;
+}
+
+message UpdateTransactionStatusResponse {
+    ResponseMetadata metadata = 1;
+    string transactionId = 2;
+    string newStatus = 3;
+    google.protobuf.Struct action = 4; // Optional, included if the new status is "approved"
+  }
+  
+  enum TransactionStatus {
+    CREATED = 0;
+    PENDING_APPROVAL = 1;
+    CHECKER_NOTIFIED = 2;
+    APPROVED = 3;
+    REJECTED = 4;
+    AUTOMATIC_APPROVAL = 5;
+    AUTOMATIC_REJECTION = 6;
+    COMPLETED = 7;
+  }

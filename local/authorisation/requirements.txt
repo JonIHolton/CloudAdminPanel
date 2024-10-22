@@ -1,0 +1,9 @@
+grpcio
+grpcio-tools
+psycopg2
+SQLAlchemy
+alembic
+psycopg2-binary
+Faker
+Flask
+flasgger

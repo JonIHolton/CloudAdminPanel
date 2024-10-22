@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package user;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+
+
+message User {
+  string userId = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string email = 4;
+  string imageUrl = 5;
+  bool emailVerified = 6;
+  string provider = 7;
+  repeated string authorities = 8;
+  bool isExpired = 9;
+  bool isLocked = 10;
+  bool isCredentialsExpired = 11;
+  bool isEnabled = 12;
+  string role = 13;
+  google.protobuf.Timestamp createdAt = 14;
+}
+
+
+// Request and Response Messages
+message GetRequest {
+  string id = 1; // Generic ID for user or email based on context
+}
+
+message GetAllUsersRequest {
+  int32 start = 1;
+  int32 size = 2;
+  string filters = 3; 
+  string sorting = 4;
+}
+
+message GetAllUsersResponse {
+  repeated User users = 1;
+  int32 totalUsers = 2; // To support pagination
+}
+
+message CreateUserRequest {
+  User user = 1;
+}
+
+message CreateUserResponse {
+  User user = 1; // Return the created user
+}
+
+message UpdateUserRequest {
+  string userId = 1;
+  google.protobuf.FieldMask updateMask = 2;
+  User user = 3;
+}
+
+
+message UpdateUserResponse {
+  User user = 1; // Return the updated user
+}
+
+message PointsRequest {
+  string pointsid = 1; // For getting, updating, or deleting points account
+}
+
+
+// Service Definition
+service UserManagementService {
+  rpc GetUserByUserId(GetRequest) returns (User) {}
+  rpc GetUserByEmail(GetRequest) returns (User) {}
+  rpc CreateNewUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {}
+  rpc DeleteUser(GetRequest) returns (google.protobuf.Empty) {}
+  rpc GetAllUsers(GetAllUsersRequest) returns (GetAllUsersResponse) {}
+  rpc Ping(PingRequest) returns (PingResponse) {}
+
+}
+
+
+
+message PingRequest {}
+message PingResponse {
+  string message = 1;
+}

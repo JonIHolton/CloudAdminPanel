@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  primary-host:
+    image: postgres:latest
+    volumes:
+      - postgres_data_write:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123123123
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  secondary-host:
+    image: postgres:latest
+    volumes:
+      - postgres_data_read:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123123123
+    depends_on:
+      - primary-host
+    networks:
+      - backend
+
+  # redis-master:
+  #   image: redis:7.2-rc2-alpine3.18
+  #   command: redis-server --requirepass password
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "password", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - backend
+
+  # redis-slave:
+  #   image: redis:7.2-rc2-alpine3.18
+  #   command: redis-server --slaveof redis-master 6379 --requirepass password
+  #   depends_on:
+  #     - redis-master
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "password", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - backend
+
+  frontend-client:
+    build: ../../client
+    image: client:1.0
+    ports:
+      - "3001:3001"
+    depends_on:
+      - admin-proxy
+    networks:
+      - frontend
+
+  admin-proxy:
+    build:
+      context: ../admin-proxy
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      # - redis-slave
+      - user-orchestrator
+      - authorisation
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - frontend
+      - backend
+
+  user-orchestrator:
+    build:
+      context: ../userorchestrator
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "50053:50053"
+    depends_on:
+      primary-host:
+       condition: service_healthy
+    networks:
+      - backend
+
+  users:
+    build:
+      context: ../users
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      - DB_HOST=primary-host
+      - DB_USER=postgres
+      - DB_PASSWORD=123123123
+      - DB_NAME=testdb
+    depends_on:
+      primary-host:
+       condition: service_healthy
+    networks:
+      - backend
+
+  authorisation:
+    build:
+      context: ../authorisation
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - DB_HOST=primary-host
+      - DB_USER=postgres
+      - DB_PASSWORD=123123123
+      - DB_NAME=testdb
+    depends_on:
+      primary-host:
+       condition: service_healthy
+    networks:
+      - backend
+
+  points:
+    build:
+      context: ../points
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "50052:50052"
+    environment:
+      - DB_HOST=primary-host
+      - DB_USER=postgres
+      - DB_PASSWORD=123123123
+      - DB_NAME=testdb
+    depends_on:    
+      primary-host:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # redis-host:
+  #   image: redis:7.2-rc2-alpine3.18
+  #   command: redis-server --requirepass password
+  #   ports:
+  #     - "6379:6379"
+  #   healthcheck:
+  #     test: [ "CMD", "redis-cli", "-a", "password", "--raw", "incr", "ping" ]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  # redisearch:
+  #   build:
+  #     context: ../logging
+  #     dockerfile: redis.Dockerfile
+  #   user: root
+  #   ports:
+  #     - "6380:6379"
+  #   networks:
+  #     - backend
+  
+  # redis-init:
+  #   image: redis:latest
+  #   volumes:
+  #     - ../logging/volumes/init-redis.sh:/init-redis.sh
+  #   depends_on:
+  #     - redisearch
+  #   entrypoint: ["/bin/sh", "/init-redis.sh"]
+  #   networks:
+  #     - backend
+
+  # fluentd-aggregator-primary:
+  #   image: fluentd:latest
+  #   user: root
+  #   ports:
+  #     - "24224:24224"
+  #     - "24224:24224/udp"
+  #     - "9880:9880"
+  #   env_file:
+  #     - ../logging/.env
+  #   volumes:
+  #     - "../logging/volumes/fluentd-aggregator.conf:/fluentd/etc/fluent.conf"
+  #     - "../logging/volumes/start-aggregator.sh:/bin/start-fluentd.sh"
+  #   entrypoint: /bin/sh
+  #   command: -c "/bin/start-fluentd.sh"
+  #   networks:
+  #     - backend
+
+  # fluentd-aggregator-secondary:
+  #   image: fluentd:latest
+  #   user: root
+  #   ports:
+  #     - "24225:24224"
+  #     - "24225:24224/udp"
+  #     - "9881:9880"
+  #   env_file:
+  #     - ../logging/.env
+  #   volumes:
+  #     - "../logging/volumes/fluentd-aggregator.conf:/fluentd/etc/fluent.conf"
+  #     - "../logging/volumes/start-aggregator.sh:/bin/start-fluentd.sh"
+  #   entrypoint: /bin/sh
+  #   command: -c "/bin/start-fluentd.sh"
+  #   networks:
+  #     - backend
+
+  # fluentd-node:
+  #   image: fluentd:latest 
+  #   container_name: fluentd-node
+  #   user: root
+  #   depends_on:
+  #     - redisearch
+  #   volumes:
+  #     - "../logging/logs/user_creation_logs.txt:/home/fluent/user_creation_logs.txt"
+  #     - "../logging/logs/user_update_logs.txt:/home/fluent/user_update_logs.txt"
+  #     - "../logging/logs/user_deletion_logs.txt:/home/fluent/user_deletion_logs.txt"
+  #     - "../logging/volumes/fluentd-node.conf:/fluentd/etc/fluent.conf"
+  #     - "../logging/volumes/start-node.sh:/bin/start-fluentd.sh"
+  #   entrypoint: /bin/sh
+  #   command: -c "/bin/start-fluentd.sh"
+  #   networks:
+  #     - backend
+
+  logs:
+    build:
+      context: ../logging
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data_write:
+  postgres_data_read:

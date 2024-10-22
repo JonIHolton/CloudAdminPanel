@@ -1,0 +1,32 @@
+<configuration>
+
+    <!-- Appenders -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/application.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loggers -->
+    <!-- Suppress SQL-related logs from Hibernate -->
+    <logger name="org.hibernate.engine.jdbc.connections.internal.ConnectionProviderInitiator" level="ERROR"/>
+    <logger name="org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl" level="ERROR"/>
+
+    <!-- Set the level for your application's package to INFO -->
+    <logger name="com.ITSA.users" level="INFO"/>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
